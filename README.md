@@ -59,8 +59,8 @@ flowchart LR
 | 5 | `vehicle` (차량) | car, truck, bus, caravan, trailer, train, motorcycle, bicycle | ✗ |
 | 6 | `pole_sign` (기둥·차단봉·표지판) | pole, polegroup, traffic light, traffic sign | ✗ |
 
-- **보행 가능 클래스는 `{2, 3}`** 입니다 (`seg_multi.py`의 `WALKABLE`).
-- 클래스 개수와 순서는 앱 코드(`WalkableSegmenter.kt`의 `NAMES`)와 반드시 같아야 합니다.
+- **보행 가능 클래스는 `{2, 3}`** (`seg_multi.py`의 `WALKABLE`).
+- 클래스 개수와 순서는 앱 코드(`WalkableSegmenter.kt`의 `NAMES`)와 반드시 같아야 함.
 - 횡단보도(3)는 Cityscapes에 별도 라벨이 없어서 **현재 학습 데이터에는 비어 있음** 구조는 7클래스로 고정해 두었기 때문에, 데이터를 추가해 재학습해도 앱 코드는 바뀌지 않음.
 
 ---
@@ -71,7 +71,7 @@ flowchart LR
 
 - 학습 2,975장 / 검증 500장 사용. 시험(test) 셋은 정답이 공개되지 않아 사용하지 않음.
 - 다운로드: [cityscapes-dataset.com](https://www.cityscapes-dataset.com) 로그인 후 `gtFine_trainvaltest.zip`, `leftImg8bit_trainvaltest.zip`
-- 압축을 아래처럼 풉니다 ("현재 폴더에 풀기"로 풀어서 폴더가 한 단계 더 생기지 않게 주의).
+- 압축을 품 ("현재 폴더에 풀기"로 풀어서 폴더가 한 단계 더 생기지 않게 주의).
 
 ```
 cityscapes/
@@ -79,7 +79,7 @@ cityscapes/
   gtFine/{train,val,test}/<도시>/*_gtFine_labelIds.png
 ```
 
-> ⚠️ **라이선스**: Cityscapes는 비상업적 연구 목적의 라이선스입니다. 상업적 사용 가능 여부는 약관을 확인
+> ⚠️ **라이선스**: Cityscapes는 비상업적 연구 목적의 라이선스. 상업적 사용 가능 여부는 약관을 확인
 
 ### 4.2 전처리
 
@@ -104,8 +104,7 @@ cityscapes/
 출력 (224×512×7)
 ```
 
-구조는 합성곱으로만 이뤄져 있어서 가중치를 그대로 두고 입력 크기만 바꿔 내보낼 수 있음, (`export_for_aria.py`, 288×512). 입력 크기는 **32의 배수**여야 합니다.
-
+구조는 합성곱으로만 이뤄져 있어서 가중치를 그대로 두고 입력 크기만 바꿔 내보낼 수 있음, (`export_for_aria.py`, 288×512). 입력 크기는 **32의 배수**
 ---
 
 ## 6. 학습
@@ -127,7 +126,7 @@ cityscapes/
 
 ## 7. 평가
 
-`evaluate_multi.py`가 아래를 출력하고, `seg_preview_multi/`에 예측 오버레이 이미지를 저장합니다.
+`evaluate_multi.py`가 아래를 출력하고, `seg_preview_multi/`에 예측 오버레이 이미지를 저장.
 
 - **클래스별 IoU** (데이터가 없는 클래스는 `-`로 표시)
 - 인도+횡단보도를 "보행 가능", 나머지를 "불가능"으로 합친 **안전 지표**
@@ -172,7 +171,7 @@ venv\Scripts\Activate.ps1
 pip install tensorflow pillow opencv-python
 ```
 
-> Keras 3 기준입니다. `&&`는 PowerShell 5에서 동작하지 않으니 명령을 한 줄씩 실행하세요.
+> Keras 3 기준. `&&`는 PowerShell 5에서 동작하지 않으니 명령을 한 줄씩 실행.
 
 ### 8.2 데이터 준비 → 학습 → 평가 → 변환
 
@@ -184,7 +183,7 @@ python evaluate_multi.py        # 평가 + 미리보기 이미지
 python convert_multi.py         # TFLite 변환 → walkable_seg_multi.tflite
 ```
 
-`prepare_data_multi.py`는 `prepare_data.py`가 만든 `seg_data/*/images`를 재사용하므로 **반드시 `prepare_data.py`를 먼저** 실행해야 합니다.
+`prepare_data_multi.py`는 `prepare_data.py`가 만든 `seg_data/*/images`를 재사용하므로 **반드시 `prepare_data.py`를 먼저** 실행.
 
 ### 8.3 영상으로 테스트 (PC)
 
@@ -192,7 +191,7 @@ python convert_multi.py         # TFLite 변환 → walkable_seg_multi.tflite
 python test_video_multi.py      # test.mp4 → result_multi.mp4
 ```
 
-`test_video_multi.py` 상단의 설정을 조정합니다.
+`test_video_multi.py` 상단의 설정을 조정.
 
 | 설정 | 설명 |
 |---|---|
