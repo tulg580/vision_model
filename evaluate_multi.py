@@ -18,6 +18,15 @@ for i, name in enumerate(CLASS_NAMES):
     iou = f"{cm[i, i] / union:.3f}" if cm[i].sum() > 0 else "  -  (데이터 없음)"
     print(f"  {name:10s} IoU {iou}   (전체 픽셀의 {share:.1f}%)")
 
+# 인도가 어떤 클래스와 헷갈리는지 (도로와의 혼동인지, 기타(잔디·주차장 등)와의 혼동인지)
+SW = CLASS_NAMES.index("sidewalk")
+print("\n[실제 인도 픽셀은 어떻게 예측됐나 (%)]")
+for n, v in zip(CLASS_NAMES, 100 * cm[SW] / max(cm[SW].sum(), 1)):
+    print(f"  -> {n:10s} {v:5.1f}%")
+print("\n[인도로 예측된 픽셀의 실제 클래스 (%)]")
+for n, v in zip(CLASS_NAMES, 100 * cm[:, SW] / max(cm[:, SW].sum(), 1)):
+    print(f"  <- {n:10s} {v:5.1f}%")
+
 # 보행 가능(인도+횡단보도) vs 불가능으로 합쳐서 안전 지표 계산
 walk = np.zeros(N, bool)
 walk[WALKABLE] = True
@@ -31,8 +40,9 @@ print(f"  보행가능 재현율 : {tp / max(tp + fn, 1):.3f}")
 print(f"  막힌 곳 재현율  : {tn / max(tn + fp, 1):.3f}  (막힌 곳을 막혔다고 맞힌 비율, 안전상 중요)")
 
 # 예측을 색으로 덧씌운 미리보기 저장
-PALETTE = np.array([[0, 0, 0], [128, 64, 128], [244, 35, 232], [255, 255, 0],
-                    [255, 0, 0], [0, 0, 142], [255, 165, 0]], np.uint8)   # RGB
+# 앱(ImageUtils.CLASS_COLORS)과 같은 색 (RGB)
+PALETTE = np.array([[0, 0, 0], [255, 57, 57], [57, 255, 57], [57, 57, 255],
+                    [255, 255, 57], [255, 57, 255], [57, 255, 255]], np.uint8)
 Path("seg_preview_multi").mkdir(exist_ok=True)
 for p in sorted(Path("seg_data/val/images").glob("*.jpg"))[::60][:8]:
     im = Image.open(p).convert("RGB")
@@ -42,4 +52,4 @@ for p in sorted(Path("seg_data/val/images").glob("*.jpg"))[::60][:8]:
     arr[m] = (0.5 * arr[m] + 0.5 * PALETTE[cls][m]).astype("uint8")
     Image.fromarray(arr).save(f"seg_preview_multi/{p.stem}.png")
 print("\nseg_preview_multi 폴더에서 결과 이미지를 확인하세요")
-print("색: 도로=보라, 인도=분홍, 횡단보도=노랑, 사람=빨강, 차량=파랑, 기둥/표지판=주황")
+print("색(앱과 동일): 도로=빨강, 인도=초록, 횡단보도=파랑, 사람=노랑, 차량=자홍, 기둥/표지판=청록, 기타=표시 안 함")
