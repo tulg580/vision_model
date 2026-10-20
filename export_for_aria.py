@@ -15,7 +15,9 @@ new = sm.build_model(weights=None)
 new.set_weights(old.get_weights())
 
 # 앱은 0~1로 정규화해서 넣으므로, 모델 맨 앞에서 0~255로 되돌려 줌
-inp = keras.Input((APP_H, APP_W, 3))
+# batch_size=1로 고정: 모델 안의 shape 계산 연산(SHAPE/STRIDED_SLICE/PACK)이 사라져서
+# 모바일(특히 GPU 위임)에서 연산이 덜 쪼개지고 실행이 가벼워집니다 (출력은 동일)
+inp = keras.Input((APP_H, APP_W, 3), batch_size=1)
 out = new(layers.Rescaling(255.0)(inp))
 export = keras.Model(inp, out)
 
