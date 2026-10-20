@@ -17,8 +17,9 @@ W, H = 512, 224
 
 NAMES = ["other", "road", "sidewalk", "crosswalk", "person", "vehicle", "pole_sign"]
 WALKABLE = [2, 3]
-PALETTE = np.array([[0, 0, 0], [128, 64, 128], [232, 35, 244], [0, 255, 255],
-                    [0, 0, 255], [142, 0, 0], [0, 165, 255]], np.uint8)   # BGR
+# 앱(ImageUtils.CLASS_COLORS)과 같은 색 (BGR): 도로=빨강, 인도=초록, 횡단보도=파랑, 사람=노랑, 차량=자홍, 기둥/표지판=청록
+PALETTE = np.array([[0, 0, 0], [57, 57, 255], [57, 255, 57], [255, 57, 57],
+                    [57, 255, 255], [255, 57, 255], [255, 255, 57]], np.uint8)
 
 interp = tf.lite.Interpreter(model_path=MODEL)
 interp.allocate_tensors()
