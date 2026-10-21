@@ -46,23 +46,33 @@ def make_ds(split, training):
 
 
 def build_model(weights="imagenet"):
-    # 입력 크기가 정사각형이 아니라는 경고가 떠도 정상입니다
     base = keras.applications.MobileNetV2(
         input_shape=(H, W, 3), include_top=False, weights=weights)
+    
+    # 크기(해상도)가 정확히 1/2씩 맞아떨어지는 레이어들 선택
     names = ["block_1_expand_relu", "block_3_expand_relu",
              "block_6_expand_relu", "block_13_expand_relu", "block_16_project"]
     encoder = keras.Model(base.input, [base.get_layer(n).output for n in names],
                           name="encoder")
 
-    inputs = keras.Input((H, W, 3))                      # 0~255 입력
-    x = layers.Rescaling(1 / 127.5, offset=-1)(inputs)   # MobileNetV2는 -1~1 입력
+    inputs = keras.Input((H, W, 3))
+    x = layers.Rescaling(1 / 127.5, offset=-1)(inputs)
     *skips, x = encoder(x)
-    for f, s in zip([256, 128, 64, 32], reversed(skips)):
-        x = layers.Conv2DTranspose(f, 3, strides=2, padding="same", activation="relu")(x)
-        x = layers.Concatenate()([x, s])
-        x = layers.Conv2D(f, 3, padding="same", activation="relu")(x)
-    x = layers.Conv2DTranspose(16, 3, strides=2, padding="same", activation="relu")(x)
-    out = layers.Conv2D(NUM_CLASSES, 1, activation="softmax")(x)   # (H, W, 클래스 수)
+
+    # 채널 수를 가볍게 축소 (128, 64, 32, 16)
+    # UpSampling2D + 1x1 채널 압축 + SeparableConv2D 조합 (모바일 최적화)
+    for f, s in zip([128, 64, 32, 16], reversed(skips)):
+        x = layers.UpSampling2D(size=(2, 2), interpolation="bilinear")(x)
+        # 스킵 레이어의 뚱뚱한 채널을 1x1 Conv로 32~64개로 가볍게 다이어트
+        s_reduced = layers.Conv2D(f // 2, 1, padding="same", use_bias=False)(s)
+        x = layers.Concatenate()([x, s_reduced])
+        x = layers.SeparableConv2D(f, 3, padding="same", activation="relu")(x)
+        x = layers.BatchNormalization()(x)
+
+    x = layers.UpSampling2D(size=(2, 2), interpolation="bilinear")(x)
+    x = layers.SeparableConv2D(16, 3, padding="same", activation="relu")(x)
+    out = layers.Conv2D(NUM_CLASSES, 1, activation="softmax")(x)
+
     return keras.Model(inputs, out)
 
 
