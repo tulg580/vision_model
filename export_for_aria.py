@@ -1,22 +1,24 @@
-"""ARiA 테스트 앱 규격(입력 512x288, 0~1 입력)에 맞춰 모델을 다시 내보냅니다.
-재학습은 필요 없고, 학습된 가중치를 그대로 새 크기의 모델에 옮깁니다."""
+"""ARiA 앱 규격(512x288, 0~1 입력, FP16)으로 TFLite 모델을 내보냅니다."""
 import numpy as np
+from pathlib import Path
 import seg_multi as sm
 from seg_multi import *
 
 APP_H, APP_W = 288, 512
-USE_FP16 = False        # True면 파일 크기가 절반 정도로 줄어듭니다 (GPU에서 유리). 처음엔 False로 테스트
+USE_FP16 = True
 
-old = keras.models.load_model("walkable_seg_multi.keras", compile=False)
+# 파인튜닝된 가중치가 있으면 우선 로드, 없으면 기본 모델 로드
+weights_path = Path("walkable_seg_finetuned.keras")
+if not weights_path.exists():
+    weights_path = Path("walkable_seg_multi.keras")
 
-# 같은 구조를 288x512 입력으로 새로 만들고 가중치만 복사 (합성곱 모델이라 크기와 무관)
+print(f"로드할 가중치: {weights_path}")
+old = keras.models.load_model(str(weights_path), compile=False)
+
 sm.H, sm.W = APP_H, APP_W
 new = sm.build_model(weights=None)
 new.set_weights(old.get_weights())
 
-# 앱은 0~1로 정규화해서 넣으므로, 모델 맨 앞에서 0~255로 되돌려 줌
-# batch_size=1로 고정: 모델 안의 shape 계산 연산(SHAPE/STRIDED_SLICE/PACK)이 사라져서
-# 모바일(특히 GPU 위임)에서 연산이 덜 쪼개지고 실행이 가벼워집니다 (출력은 동일)
 inp = keras.Input((APP_H, APP_W, 3), batch_size=1)
 out = new(layers.Rescaling(255.0)(inp))
 export = keras.Model(inp, out)
@@ -25,20 +27,22 @@ converter = tf.lite.TFLiteConverter.from_keras_model(export)
 if USE_FP16:
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_types = [tf.float16]
-tflite_model = converter.convert()
-Path("walkable_seg_aria.tflite").write_bytes(tflite_model)
-print(f"저장 완료: walkable_seg_aria.tflite ({len(tflite_model) / 1024 / 1024:.1f} MB)")
 
-# 검증: 0~1 입력으로 돌린 TFLite 결과 == 0~255 입력으로 돌린 원래 Keras 결과
-interp = tf.lite.Interpreter(model_path="walkable_seg_aria.tflite")
+tflite_model = converter.convert()
+output_name = "walkable_seg_aria5.tflite"
+Path(output_name).write_bytes(tflite_model)
+print(f"저장 완료: {output_name} ({len(tflite_model) / 1024 / 1024:.2f} MB)")
+
+# 검증
+interp = tf.lite.Interpreter(model_path=output_name)
 interp.allocate_tensors()
 i, o = interp.get_input_details()[0], interp.get_output_details()[0]
-print("입력:", i["shape"], i["dtype"].__name__, "/ 출력:", o["shape"], o["dtype"].__name__)
+print("입력 텐서:", i["shape"], i["dtype"].__name__, "/ 출력 텐서:", o["shape"], o["dtype"].__name__)
 
 x01 = np.random.default_rng(0).random((1, APP_H, APP_W, 3)).astype("float32")
 ref = new.predict(x01 * 255.0, verbose=0)[0]
 interp.set_tensor(i["index"], x01)
 interp.invoke()
 res = interp.get_tensor(o["index"])[0]
-print("최대 차이:", float(np.abs(ref - res).max()))
+print("최대 오차:", float(np.abs(ref - res).max()))
 print("클래스 일치율:", float((ref.argmax(-1) == res.argmax(-1)).mean()))
